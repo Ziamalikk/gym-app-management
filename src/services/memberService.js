@@ -16,7 +16,7 @@ export async function addMembers(values) {
 
     return await response.json();
   } catch (error) {
-    console.error("API Error:", error);
+    console.error("API Errors:", error);
     throw error; // Propagate error to UI
   }
 }
