@@ -5,9 +5,8 @@ import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { loginUser } from "@/services/authService";
+import { useNavigate } from "react-router-dom";
 
-// ✅ Fixed Validation Schema
 const formSchema = z.object({
   username: z.string().min(2, {
     message: "Username must be at least 2 characters.",
@@ -18,6 +17,7 @@ const formSchema = z.object({
 });
 
 const Login = () => {
+  const navigate = useNavigate();
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -25,67 +25,87 @@ const Login = () => {
       password: "",
     },
   });
+
   async function onSubmit(values) {
     try {
-      const data = await loginUser(values);
-      console.log("Login Success:", data);
-  
-      localStorage.setItem("token", data.token);
+      const users = JSON.parse(localStorage.getItem("users")) || [];
+      const user = users.find(u => 
+        u.username === values.username && 
+        u.password === values.password
+      );
+
+      if (!user) throw new Error("Invalid credentials");
+      
+      localStorage.setItem("token", "dummy-token");
+      localStorage.setItem("role", user.role);
+      localStorage.setItem("user", JSON.stringify(user));
+      
+      if (user.role === "admin") {
+        navigate("/admin-dashboard");
+      } else {
+        navigate("/member-dashboard");
+      }
+      
       alert("Login successful!");
-      // ✅ Navigate to dashboard or any page if needed
-  
     } catch (err) {
-      console.error("Login Error:", err.message);
       alert("Login failed: " + err.message);
+      console.error("Login error:", err);
     }
   }
-  
 
   return (
-    <>
-      <div className=" bg-blue-100 flex items-center justify-center h-screen">
-      <div className="bg-yellow-50 p-8 rounded-lg shadow-lg w-96 h-80">
-          <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <h1 className="  flex justify-center text-2xl font-bold mb-4">Login Form</h1>
+    <div className="bg-blue-100 flex items-center justify-center min-h-screen">
+      <div className="bg-yellow-50 p-8 rounded-lg shadow-lg w-96">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <h1 className="text-2xl font-bold text-center mb-6">Login Form</h1>
 
-          {/* ✅ Username Field */}
-          <FormField
-            control={form.control}
-            name="username"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Username</FormLabel>
-                <FormControl>
-                  <Input type="text" placeholder="Enter your username" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+            <FormField
+              control={form.control}
+              name="username"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Username</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="text" 
+                      placeholder="Enter username" 
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-          {/* ✅ Password Field (Corrected type="password") */}
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Password</FormLabel>
-                <FormControl>
-                  <Input type="password" placeholder="Enter your password" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="password"
+                      placeholder="Enter password"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-          {/* ✅ Submit Button */}
-          <Button type="submit" className="w-full font-bold hover:bg-blue-200  bg-blue-500 cursor-pointer">Submit</Button>
-        </form>
-      </Form>
+            <Button 
+              type="submit" 
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              Login
+            </Button>
+          </form>
+        </Form>
       </div>
-      </div>
-    </>
+    </div>
   );
 };
 

@@ -1,8 +1,8 @@
 import { Sheet, SheetTrigger, SheetContent, SheetClose } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "react-router-dom";
-import Logout from "@/pages/Auth/Logout";
 import { cn } from "@/lib/utils"; // For conditional styling
+import Logout from "@/pages/Auth/Logout";
 
 export function AdminSidebar() {
   const location = useLocation();

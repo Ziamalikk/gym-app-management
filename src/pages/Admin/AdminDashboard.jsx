@@ -47,11 +47,7 @@ const AdminDashboard = () => {
 
         {/* Quick Actions */}
         <div className="flex flex-wrap gap-6">
-          <Link to="/member">
-            <Button className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 text-lg rounded shadow">
-              ➕ Add Member
-            </Button>
-          </Link>
+          
           <Link to="/billing">
             <Button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 text-lg rounded shadow">
               💳 Generate Bill

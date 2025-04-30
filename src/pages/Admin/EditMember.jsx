@@ -1,24 +1,24 @@
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem
+} from "@/components/ui/select";
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { useParams, useNavigate } from "react-router-dom";
-// import { getMemberById, updateMember } from "@/services/memberService";
-import { toast } from "sonner"; // ✅ For success/error messages
-
-// ✅ Validation Schema
-const formSchema = z.object({
-  name: z.string().min(2, { message: "Full name must be at least 2 characters." }),
-  email: z.string().email({ message: "Enter a valid email address." }),
-  phone: z.string().min(10, { message: "Enter a valid phone number (10 digits)." }),
-  membershipType: z.enum(["Monthly", "Quarterly", "Annual"], { message: "Select a membership type." }),
-  startDate: z.string().min(1, { message: "Start date is required." }),
-  endDate: z.string().optional(),
-});
+import { toast } from "sonner";
 
 const EditMember = () => {
   const { id } = useParams();
@@ -26,39 +26,74 @@ const EditMember = () => {
   const [loading, setLoading] = useState(true);
 
   const form = useForm({
-    resolver: zodResolver(formSchema),
     defaultValues: {
+      memberId: 0,
       name: "",
       email: "",
       phone: "",
-      membershipType: "",
+      membershipType: "Monthly",
       startDate: "",
       endDate: "",
-    },
+      password: "",
+      role: "member"
+    }
   });
 
+  // Load user from localStorage
   useEffect(() => {
-    const fetchMember = async () => {
-      const member = await getMemberById(id);
-      if (member) {
-        form.reset(member);
+    const fetchMember = () => {
+      try {
+        const users = JSON.parse(localStorage.getItem("users")) || [];
+        const member = users.find((u) => u.memberId === Number(id));
+
+        if (member) {
+          form.reset({
+            ...member,
+            startDate: member.startDate?.split("T")[0] || "",
+            endDate: member.endDate?.split("T")[0] || ""
+          });
+        } else {
+          toast.error("Member not found");
+        }
+        setLoading(false);
+      } catch (error) {
+        console.error("Error loading member:", error);
+        toast.error("Error loading member data");
+        setLoading(false);
       }
-      setLoading(false);
     };
+
     fetchMember();
   }, [id, form]);
 
-  const onSubmit = async (updatedData) => {
-    const updatedMember = await updateMember(id, updatedData);
-    if (updatedMember) {
+  const onSubmit = (updatedData) => {
+    try {
+      const users = JSON.parse(localStorage.getItem("users")) || [];
+      const index = users.findIndex((u) => u.memberId === Number(id));
+      if (index === -1) {
+        toast.error("Member not found");
+        return;
+      }
+
+      // Keep old password if empty
+      if (!updatedData.password) {
+        updatedData.password = users[index].password;
+      }
+
+      users[index] = { ...users[index], ...updatedData };
+
+      localStorage.setItem("users", JSON.stringify(users));
       toast.success("Member updated successfully!");
-      navigate("/members");
-    } else {
-      toast.error("Failed to update member.");
+      console.log("updated");
+      
+      navigate("/manage-members");
+    } catch (error) {
+      console.error("Update failed:", error);
+      toast.error("Failed to update member");
     }
   };
 
-  if (loading) return <p className="text-center text-lg">Loading...</p>;
+  if (loading) return <div className="text-center p-8">Loading member data...</div>;
 
   return (
     <div className="p-6 min-h-screen bg-gradient-to-br from-blue-50 to-blue-100">
@@ -67,36 +102,46 @@ const EditMember = () => {
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField control={form.control} name="name" render={({ field }) => (
+            <FormField name="memberId" control={form.control} render={({ field }) => (
+              <Input type="hidden" {...field} />
+            )} />
+
+            <FormField name="name" control={form.control} render={({ field }) => (
               <FormItem>
                 <FormLabel>Full Name</FormLabel>
-                <FormControl><Input type="text" {...field} /></FormControl>
+                <FormControl>
+                  <Input {...field} placeholder="Full name" />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )} />
 
-            <FormField control={form.control} name="email" render={({ field }) => (
+            <FormField name="email" control={form.control} render={({ field }) => (
               <FormItem>
-                <FormLabel>Email Address</FormLabel>
-                <FormControl><Input type="email" {...field} /></FormControl>
+                <FormLabel>Email</FormLabel>
+                <FormControl>
+                  <Input type="email" {...field} placeholder="Email" />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )} />
 
-            <FormField control={form.control} name="phone" render={({ field }) => (
+            <FormField name="phone" control={form.control} render={({ field }) => (
               <FormItem>
-                <FormLabel>Phone Number</FormLabel>
-                <FormControl><Input type="text" {...field} /></FormControl>
+                <FormLabel>Phone</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="Phone" />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )} />
 
-            <FormField control={form.control} name="membershipType" render={({ field }) => (
+            <FormField name="membershipType" control={form.control} render={({ field }) => (
               <FormItem>
                 <FormLabel>Membership Type</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select value={field.value} onValueChange={field.onChange}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select Membership Type" />
+                    <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Monthly">Monthly</SelectItem>
@@ -108,25 +153,46 @@ const EditMember = () => {
               </FormItem>
             )} />
 
-            <FormField control={form.control} name="startDate" render={({ field }) => (
+            <FormField name="startDate" control={form.control} render={({ field }) => (
               <FormItem>
                 <FormLabel>Start Date</FormLabel>
-                <FormControl><Input type="date" {...field} /></FormControl>
+                <FormControl>
+                  <Input type="date" {...field} />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )} />
 
-            <FormField control={form.control} name="endDate" render={({ field }) => (
+            <FormField name="endDate" control={form.control} render={({ field }) => (
               <FormItem>
                 <FormLabel>End Date</FormLabel>
-                <FormControl><Input type="date" {...field} /></FormControl>
+                <FormControl>
+                  <Input type="date" {...field} />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )} />
 
-            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold">
-              💾 Save Changes
-            </Button>
+            <FormField name="password" control={form.control} render={({ field }) => (
+              <Input type="hidden" {...field} />
+            )} />
+
+            <FormField name="role" control={form.control} render={({ field }) => (
+              <Input type="hidden" {...field} />
+            )} />
+
+            <div className="flex gap-4 justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => navigate("/manage-members")}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
+                Save Changes
+              </Button>
+            </div>
           </form>
         </Form>
       </div>
